@@ -11,6 +11,8 @@ library("traits")
 library("purrr")
 library("ips")
 library("castor")
+library("withr")
+library("randomcoloR")
 
 # bioconductor
 library("treeio")
@@ -82,4 +84,18 @@ clean_alignment_gaps <- function(matrix,maxgaps) {
     gaps.keep <- which(gaps.by.prop<=maxgaps)
     matrix.reduced <- matrix[,gaps.keep]
     return(matrix.reduced)
+}
+
+
+# RAXML-NG FUN
+raxml_ng <- function(file,model,maxthreads,epsilon,verbose) {
+    string.search <- glue("raxml-ng --search -threads auto{{{maxthreads}}} --workers auto --tree pars{{1}} --redo --seed 42 --model {model} --lh-epsilon {epsilon} --msa {file}")
+    if (verbose == "true") {
+        system(command=string.search,ignore.stdout=FALSE)
+        } else if (verbose == "false") {
+        system(command=string.search,ignore.stdout=TRUE)
+        } else stop(writeLines("Error! the '-v' flag must be 'true' or 'false'."))
+    rax.tr <- ape::read.tree(file=glue("{file}.raxml.bestTree"))
+    writeLines(glue("\nTree search completed for '{basename(file)}'.",.trim=FALSE))
+    return(rax.tr)
 }

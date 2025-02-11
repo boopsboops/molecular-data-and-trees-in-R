@@ -165,7 +165,7 @@ clusters.tib |> dplyr::count(cluster) |> dplyr::arrange(dplyr::desc(n))
 # see cluster each sequence is in
 clusters.tib |> dplyr::arrange(cluster,names) |> print(n=Inf)
 
-# 
+# first line
 clusters.tib |> dplyr::slice_head(by=cluster)
 ```
 
@@ -230,11 +230,12 @@ coi.haps.sets <- coi.haps.sets |> filter(sets=="INGROUP" | acc_no==outgroup)
 It is common to need to convert betweeen file formats a lot.  
 
 ```r
+# write out a table to read in excel
+coi.haps.sets |> readr::write_csv(here::here(today.dir,"coi.haps.csv"))
+
 # convert the tibble to an ape dnabin format and write it out as fasta
 coi.haps.dnabin <- coi.haps.sets |> tibble2dnabin(seqcol=sequence,namecol=acc_no) 
 coi.haps.dnabin |> ape::write.FASTA(here::here(today.dir,"coi.haps.fasta"))
-#coi.haps.dnabin |> ape::write.nexus.data(here::here(today.dir,"coi.haps.nex"),interleaved=FALSE)
-#coi.haps.dnabin |> ape::write.dna(here::here(today.dir,"coi.haps.phy"))
 
 # write out fasta directly from the tibble
 coi.haps.sets |> write_tibble_fasta(seqcol="sequence",namecol="acc_no",file=here::here(today.dir,"coi.haps.fasta"))
@@ -257,6 +258,7 @@ coi.haps.dnabin <- ape::read.FASTA(here::here(today.dir,"coi.haps.fasta"))
 # ips package requires a mafft executable on your system
 # only works on Linux/Mac
 coi.haps.mat <- ips::mafft(coi.haps.dnabin,method="auto",exec="mafft")
+print(coi.haps.mat)
 
 # DECIPHER runs natively 
 
@@ -290,6 +292,11 @@ coi.haps.ali.mat.clean |>
     unlist() |> 
     Biostrings::DNAStringSet() |> 
     DECIPHER::BrowseSeqs(htmlFile=here::here(today.dir,"coi.haps.ali.gaps.html"))
+
+# write out in fasta, nexus, phylip format
+coi.haps.ali.mat.clean |> ape::write.FASTA(here::here(today.dir,"coi.haps.ali.clean.fasta"))
+coi.haps.ali.mat.clean |> ape::write.nexus.data(here::here(today.dir,"coi.haps.ali.clean.nex"),interleaved=FALSE)
+coi.haps.ali.mat.clean |> ape::write.dna(here::here(today.dir,"coi.haps.ali.clean.phy"),nbcol=-1,colsep="")
 ```
 
 ### Phylogenetic trees
@@ -337,4 +344,63 @@ coi.nj |>
     castor::root_in_edge(root_edge=which.edge(coi.nj, group=og))  |> 
     ape::ladderize() |> 
     plot()
+```
+
+
+### Model-based phylogenetics
+
+Using an evolutionary model and likelihood methods will give better trees than NJ.
+
+Use [phangorn](https://klausvigo.github.io/phangorn/) to do this natively in R.
+
+```r
+# convert format 
+coi.pd <- phangorn::as.phyDat(coi)
+
+# substitution model testing
+coi.mod <- phangorn::modelTest(coi.pd,model=c("JC","F81","K80","TrN","HKY","SYM","GTR"),G=TRUE,I=FALSE,multicore=TRUE,mc.cores=2)
+as_tibble(coi.mod) |> arrange(BIC) |> mutate(bicmin=min(BIC), deltaBIC=BIC-bicmin)
+
+# make ml tree in phangorn
+coi.ml.tr <- phangorn::pml_bb(coi.mod, model=coi.mod, rearrangement="NNI")
+
+# using a wrapper for raxml-ng
+coi.rax.tr <- raxml_ng(file=here::here(today.dir,"coi.haps.ali.clean.fasta"),model="HKY+G",maxthreads=2,epsilon=1,verbose="true")
+
+coi.ml.tr.root <- coi.ml.tr$tree |> 
+    castor::root_in_edge(root_edge=which.max(coi.ml.tr$tree$edge.length)) |> 
+    ape::ladderize()
+```
+
+
+### Plot the tree using ggtree
+
+[ggtree](https://guangchuangyu.github.io/software/ggtree/) is a powerful tree plotting package similar to ggplot2.
+
+It takes some patience to get working, but has lots of flexibility.
+
+```r
+# format table for plotting
+coi.haps.sets.format <- coi.haps.sets |> 
+    dplyr::relocate(acc_no,.before="taxon") |> 
+    tidyr::separate_wider_delim(country,delim=": ",names=c("country","locality"),too_few="align_start") |>
+    dplyr::mutate(tiplabels=glue::glue("{acc_no} | {taxon} | {country}"))
+
+# make custom colours 
+ntax <- coi.haps.sets.format |> dplyr::distinct(taxon) %>% nrow()
+ccols <- withr::with_seed(seed=42, code=randomcoloR::distinctColorPalette(k=ntax))
+
+# set up a ggtree plot
+p <- ggtree::ggtree(coi.ml.tr.root, ladderize=TRUE,right=TRUE,size=0.7) %<+% coi.haps.sets.format
+pp <- p + geom_tiplab(offset=0.001,aes(label=tiplabels),align=FALSE,size=4) +
+    geom_tippoint(aes(color=taxon),size=3) +
+    scale_color_manual(values=ccols) +
+    theme(legend.position="none") +
+    xlim(0,0.9)
+
+# plot on screen
+plot(pp)
+
+# save to disk
+ggsave(filename=here::here(today.dir,"coi.haps.pdf"),plot=pp,limitsize=FALSE,width=350,height=500,units="mm")
 ```
