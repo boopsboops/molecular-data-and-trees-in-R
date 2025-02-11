@@ -56,6 +56,23 @@ renv local 4.4.1
 # creates file '.R-version'
 ```
 
+Fixing mac problems
+
+```r 
+# To install the MacOS toolchain for compiling R packages e.g. gfortran
+
+# run in bash
+cd ~
+
+# run in R
+install.packages("remotes")
+# https://github.com/coatless-mac/macrtools
+library("remotes")
+remotes::install_github("coatless-mac/macrtools")
+library("macrtools")
+macrtools::macos_rtools_install()
+```
+
 ### Setting up: installing from a remote project (easiest way) id using R v4.4.x
 
 Today, the quickest way to get set up with code and packages is to clone my project GitHub repository onto your machine. If the code already exists on GitHub, this is easy.
