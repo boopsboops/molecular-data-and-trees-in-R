@@ -1,49 +1,89 @@
 # molecular-data-and-trees-in-R
 
+### Objectives
+
+Goals for today are to understand/practice:
+
++ R projects
++ Various ways to install R packages
++ How to control and archive R packages using `renv`
++ CRAN versus Bioconductor repositories
++ DNA sequence acquisition from NCBI
++ Cleaning DNA data using clustering
++ Annotating our DNA data with sequence metadata from NCBI
++ Tabulating DNA data
++ Filtering our data and collapsing haplotypes
++ Writing/converting different file formats
++ Multiple sequence alignment 
++ Cleaning missing data from an alignment
++ Building and rooting neighbour-joining trees 
++ Substitution model testing
++ Maximum likelihood tree construction
++ Wrappers for external software
++ Plotting and annotating a tree using `ggtree`
+
+
 ### Setting up: always make your work a 'project'
 
 A project is a self contained directory (folder) on your machine for a discreet piece of work. Ideally it should have everything you need to repeat the work, and the code should run on _any_ machine now or in the future. This is important for reproducibility in science.
 
 File paths should be relative to the top of your project and never set using `setwd()` and include the full path. 
 
-The easiest to make a project is RStudio using `File > New project > New directory > New project` in RStudio. Create new directory and click yes to `renv` as R package manager.  
+The easiest way to make a project is RStudio using `File > New project > New directory > New project` in RStudio. Create new directory and click yes to `renv` as R package manager.  
 
-This creates a folder with the following folders/files: `renv`, `.Rprofile`, `project-name.Rproj`, `renv.lock`. R now knows this is a 'project'. 
+This creates a folder with the following folders/files so R now knows this is a 'project':
+
++ `renv`
++ `.Rprofile`
++ `project-name.Rproj`
++ `renv.lock`
 
 
 ### Setting up: safe R versioning using 'renv-installer'
 
-When R versions update this can break your code. A good solution is to be able to install as many R versions as you need, side-by-side, and specify the version in the project. 
+When R versions update this can break your code (especially Bioconductor!). A good solution is to be able to install as many R versions as you need, side-by-side, and specify the version in the project. 
 
 For this I use software called [renv-installer](https://github.com/jcrodriguez1989/renv-installer), not to be confused with the [renv package manager](https://rstudio.github.io/renv/) (more on this later).
 
 Runs on Linux or Mac (not Windows unfortunately). To install and set an R version just run:
 
 ```sh
+# JUST AN EXAMPLE - DON'T RUN THIS CODE #
+
 # install R and set version
 renv install 4.4.1
 renv local 4.4.1
 # creates file '.R-version'
 ```
 
-### Setting up: installing from a remote project
+### Setting up: installing from a remote project (easiest way) id using R v4.4.x
 
-Today, the quickest way to get set up with code and packages is to clone my project GitHub repository onto your machine.
+Today, the quickest way to get set up with code and packages is to clone my project GitHub repository onto your machine. If the code already exists on GitHub, this is easy.
 
 In git just run `git clone https://github.com/boopsboops/molecular-data-and-trees-in-R.git`. 
 
 Alternatively, download and unpack this .zip from [https://github.com/boopsboops/molecular-data-and-trees-in-R/archive/refs/heads/main.zip](https://github.com/boopsboops/molecular-data-and-trees-in-R/archive/refs/heads/main.zip).
 
+Open the `molecular-data-and-trees-in-R.Rproj` file in RStudio and install packages using `renv`.
+
+Only do this if you are running R v4.4.x.
+
 ```r 
-# open R and run to install all the R packages using renv
+# all the R packages using renv
 renv::restore()
 # may take a while!
 ```
 
 
-### Setting up: installing from scratch
+### Setting up: installing from scratch if using older than R v4.4.x
 
-First job is to install renv itself and set up a project. Do this as follows:
+First job is to install renv itself and set up a project.
+
+You need to know which R version you have and install the corresponding Bioconducter version.
+
+Bioconductor is an alternative package reposity to CRAN. Versions matter much more with Bioconductor. Each Bioconductor release is tied to an R version.
+
+See [https://bioconductor.org/about/release-announcements/](https://bioconductor.org/about/release-announcements/) for list of versions supported.
 
 ```r
 # install and load renv package manager
@@ -51,7 +91,9 @@ install.packages("renv")
 library("renv")
 
 # set up renv and Bioconducter
-renv::init(bioconductor="3.20")
+# change to your version 
+bcv <- "3.20"
+renv::init(bioconductor=bcv)
 ```
 
 Now we install CRAN packages via renv. Note we are using `renv::install()` and not `install.packages()`
@@ -59,21 +101,21 @@ Now we install CRAN packages via renv. Note we are using `renv::install()` and n
 ```r
 # install CRAN packages using renv
 renv::install("here")
-renv::install("tidyverse")
 renv::install("glue")
+renv::install("tidyverse")
 renv::install("ape")
 renv::install("phangorn")
 renv::install("rentrez")
+renv::install("purrr")
 renv::install("ips")
 renv::install("castor")
+renv::install("withr")
+renv::install("randomcoloR")
 
 # install package from GitHub
 renv::install("ropensci/traits") 
 ```
 
-Bioconductor is an alternative package reposity to CRAN. Versions matter much more with Bioconductor. Each Bioconductor release is tied to an R version. Therefore, you need to be running R v4.4.x.
-
-Alternative methods to install Bioconductor packages can be found at [https://bioconductor.org/install/](https://bioconductor.org/install/). Compatible R and Bioconductor versions can be found at [https://bioconductor.org/about/release-announcements/](https://bioconductor.org/about/release-announcements/).
 
 ```r
 # install Bioconducter packages using renv
@@ -87,10 +129,16 @@ renv::install("bioc::DECIPHER")
 renv::install("bioc::msa")
 ```
 
+
+### Setting up: installing from scratch if renv is not working
+
 Installing outside of renv is the nuclear option.
 
+We will use alternative methods to install Bioconductor packages. See [https://bioconductor.org/install/](https://bioconductor.org/install/). Compatible R and Bioconductor versions can be found at [https://bioconductor.org/about/release-announcements/](https://bioconductor.org/about/release-announcements/).
+
+
 ```r
-# use native installer with correct Biodonducter version
+# use native installer with correct Bioconducter version
 bcv <- "3.16"
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
@@ -108,21 +156,24 @@ BiocManager::install(c(
 
 # install CRAN packages using regular method
 install.packages("here")
-install.packages("tidyverse")
 install.packages("glue")
+install.packages("tidyverse")
 install.packages("ape")
 install.packages("phangorn")
 install.packages("rentrez")
+install.packages("purrr")
 install.packages("ips")
 install.packages("castor")
-install.packages("randomcoloR")
-install.packages("purrr")
 install.packages("withr")
+install.packages("randomcoloR")
 
 # install package from GitHub
 install.packages("devtools")
 devtools::install_github("ropensci/traits")
 ```
+
+Hopefully everyone has everying installed now!
+
 
 ### Setting up: preparing our work area
 
@@ -257,7 +308,6 @@ outgroup <- coi.haps.sets |>
 
 # drop upwanted outgroups
 coi.haps.sets <- coi.haps.sets |> filter(sets=="INGROUP" | acc_no==outgroup)
-
 ```
 
 
@@ -395,7 +445,7 @@ coi.pd <- phangorn::as.phyDat(coi)
 
 # substitution model testing
 coi.mod <- phangorn::modelTest(coi.pd,model=c("JC","F81","K80","TrN","HKY","SYM","GTR"),G=TRUE,I=FALSE,multicore=TRUE,mc.cores=2)
-as_tibble(coi.mod) |> arrange(BIC) |> mutate(bicmin=min(BIC), deltaBIC=BIC-bicmin)
+tibble::as_tibble(coi.mod) |> dplyr::arrange(BIC) |> dplyr::mutate(bicmin=min(BIC), deltaBIC=BIC-bicmin)
 
 # make ml tree in phangorn
 coi.ml.tr <- phangorn::pml_bb(coi.mod, model=coi.mod, rearrangement="NNI")
@@ -406,6 +456,8 @@ coi.rax.tr <- raxml_ng(file=here::here(today.dir,"coi.haps.ali.clean.fasta"),mod
 coi.ml.tr.root <- coi.ml.tr$tree |> 
     castor::root_in_edge(root_edge=which.max(coi.ml.tr$tree$edge.length)) |> 
     ape::ladderize()
+
+coi.ml.tr.root |> plot()
 ```
 
 
@@ -428,15 +480,15 @@ ccols <- withr::with_seed(seed=42, code=randomcoloR::distinctColorPalette(k=ntax
 
 # set up a ggtree plot
 p <- ggtree::ggtree(coi.ml.tr.root, ladderize=TRUE,right=TRUE,size=0.7) %<+% coi.haps.sets.format
-pp <- p + geom_tiplab(offset=0.001,aes(label=tiplabels),align=FALSE,size=4) +
-    geom_tippoint(aes(color=taxon),size=3) +
-    scale_color_manual(values=ccols) +
-    theme(legend.position="none") +
-    xlim(0,0.9)
+pp <- p + ggtree::geom_tiplab(offset=0.001,aes(label=tiplabels),align=FALSE,size=4) +
+    ggtree::geom_tippoint(aes(color=taxon),size=3) +
+    ggtree::scale_color_manual(values=ccols) +
+    ggtree::theme(legend.position="none") +
+    ggtree::xlim(0,0.9)
 
 # plot on screen
 plot(pp)
 
 # save to disk
-ggsave(filename=here::here(today.dir,"coi.haps.pdf"),plot=pp,limitsize=FALSE,width=350,height=500,units="mm")
+ggtree::ggsave(filename=here::here(today.dir,"coi.haps.pdf"),plot=pp,limitsize=FALSE,width=350,height=500,units="mm")
 ```

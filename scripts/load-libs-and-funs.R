@@ -1,5 +1,7 @@
 #!/usr/bin/env Rscript
 
+# LIBS
+
 # cran
 library("here")
 library("glue")
@@ -21,7 +23,7 @@ library("ggtree")
 library("DECIPHER")
 library("msa")
 
-# funs
+# FUNS
 
 # COLLAPSES HAPLOTYPES (FROM A DATAFRAME FORMAT TO A DATAFRAME FORMAT)
 # TIDYVERSE VERSION
@@ -34,6 +36,7 @@ collapse_haplotypes <- function(df,lencol,seqcol) {
     dat.haps.ann <- adf.haps |> dplyr::mutate(nHaps=as.numeric(table(reps)))
     return(dat.haps.ann)
 }
+
 
 # BASE R VERSION
 # COLLAPSES HAPLOTYPES (FROM A DATAFRAME FORMAT TO A DATAFRAME FORMAT)
