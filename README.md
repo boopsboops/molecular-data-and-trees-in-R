@@ -73,7 +73,7 @@ renv::install("ropensci/traits")
 
 Bioconductor is an alternative package reposity to CRAN. Versions matter much more with Bioconductor. Each Bioconductor release is tied to an R version. Therefore, you need to be running R v4.4.x.
 
-Alternative methods to install Bioconductor packages can be found at [https://bioconductor.org/install/](https://bioconductor.org/install/).
+Alternative methods to install Bioconductor packages can be found at [https://bioconductor.org/install/](https://bioconductor.org/install/). Compatible R and Bioconductor versions can be found at [https://bioconductor.org/about/release-announcements/](https://bioconductor.org/about/release-announcements/).
 
 ```r
 # install Bioconducter packages using renv
@@ -87,6 +87,42 @@ renv::install("bioc::DECIPHER")
 renv::install("bioc::msa")
 ```
 
+Installing outside of renv is the nuclear option.
+
+```r
+# use native installer with correct Biodonducter version
+bcv <- "3.16"
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(version = bcv)
+
+# install BiocManager
+BiocManager::install(c(
+    "treeio",
+    "tidytree",
+    "ggtree",
+    "Biostrings",
+    "DECIPHER",
+    "msa"
+))
+
+# install CRAN packages using regular method
+install.packages("here")
+install.packages("tidyverse")
+install.packages("glue")
+install.packages("ape")
+install.packages("phangorn")
+install.packages("rentrez")
+install.packages("ips")
+install.packages("castor")
+install.packages("randomcoloR")
+install.packages("purrr")
+install.packages("withr")
+
+# install package from GitHub
+install.packages("devtools")
+devtools::install_github("ropensci/traits")
+```
 
 ### Setting up: preparing our work area
 
